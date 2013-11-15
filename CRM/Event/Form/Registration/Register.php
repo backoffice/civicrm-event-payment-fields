@@ -188,6 +188,7 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
       $fields["email-{$this->_bltID}"] = 1;
       $fields['email-Primary'] = 1;
 
+
       CRM_Core_BAO_UFGroup::setProfileDefaults($contactID, $fields, $this->_defaults);
 
       // use primary email address if billing email address is empty
@@ -196,6 +197,7 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
       ) {
         $this->_defaults["email-{$this->_bltID}"] = $this->_defaults['email-Primary'];
       }
+
 
       foreach ($names as $name) {
         if (isset($this->_defaults[$name])) {
@@ -418,8 +420,8 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
      self::buildPaymentFields( $this );
     }
     //Ends
-  
-    $userID = parent::getContactID();
+   
+   $userID = parent::getContactID();
 
     if (!$userID) {
       $createCMSUser = FALSE;

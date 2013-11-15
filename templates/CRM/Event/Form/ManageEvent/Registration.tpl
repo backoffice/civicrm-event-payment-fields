@@ -110,6 +110,7 @@
             <td scope="row" class="label" width="20%">{$form.expiration_time.label}</td>
             <td>{$form.expiration_time.html|crmReplace:class:four} {help id="id-expiration_time"}</td>
         </tr>
+		{* Added by BOT *}
         <tr class="crm-event-manage-registration-form-block-payment_fields_position">
             <td scope="row" class="label" width="20%">{$form.payment_fields_position.label}</td>
             <td>{$form.payment_fields_position.html} </td>

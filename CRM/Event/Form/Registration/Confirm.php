@@ -618,10 +618,17 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
     unset($params['first_name']);
     unset($params['last_name']);
     $isPayLater = 0;
-    if( $params['payment_processor'] == 0 ) {
-      $isPayLater = 1;
+
+    if ( isset($params['payment_processor'])) {
+       if( $params['payment_processor'] === 0 ) {
+           $isPayLater = 1;
+       }
+    } else if (isset($this->_params['payment_processor'])) {
+       if( $this->_params['payment_processor'] === 0 ) {
+           $isPayLater = 1;
+       }
     }
-     
+ 
      $payer_email = $params['payer_id'];
      
      $isPayerAttending = TRUE;
@@ -645,15 +652,26 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
        $payer = 'payer';
        $participantRoles = CRM_Event_PseudoConstant::participantRole();
        $this->_params['payer']['participant_role_id'] = array_search('Payer', $participantRoles);
- $this->_params['payer']['email-Primary'] = $this->_params['payer']['receipt_email'];
+       $this->_params['payer']['email-Primary'] = $this->_params['payer']['receipt_email'];
+
+       //Match the payer not attending with the existing contacts
+       $payerParams  = $this->_params['payer'];       
+       $level        = ($isAdditional) ? 'Fuzzy' : 'Strict';
+       $dedupeParams = CRM_Dedupe_Finder::formatParams($payerParams, 'Individual');
+       // disable permission based on cache since event registration is public page/feature.
+       $dedupeParams['check_permission']     = FALSE;
+       $except                               = array();
+       $ids                                  = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Individual', $level, $except);
+       $matchedContactId                     = CRM_Utils_Array::value(0, $ids);
+       $this->_params['payer']['contact_id'] = $matchedContactId;
      } 
-         
+    
      foreach ($this->_params as $k => $v) { 
        if ( $key != 'payer' || $key === 0 ) {
        // unset( $this->_params[$k][is_pay_later] );
          $this->_params[$k]['is_pay_later'] = $isPayLater;
        }
-     
+
         if ( $isPayerAttending ) {
            if ( $k == $payer_email ) {
              $this->_params[$k]['is_payer']     = 1;
@@ -738,11 +756,12 @@ $this->set('params', $this->_params);
  
    
     foreach ($params as $key => $value) {
+
      $this->fixLocationFields($value, $fields);
       //unset the billing parameters if it is pay later mode
       //to avoid creation of billing location
 
-      //To set credit card parameters if payment fields are on confirm page
+	// BOT - To set credit card parameters if payment fields are on confirm page
        if ( $this->_showPaymentFields && CRM_Utils_Array::value('is_payer', $value ) ) {
          if (isset($value["billing_state_province_id-{$this->_bltID}"])
          && $value["billing_state_province_id-{$this->_bltID}"]
@@ -758,7 +777,6 @@ $this->set('params', $this->_params);
            $value['month'] = CRM_Core_Payment_Form::getCreditCardExpirationMonth($value);
          }       
      }
-
 
       if ($this->_allowWaitlist || $this->_requireApproval ||
         CRM_Utils_Array::value('is_pay_later', $value) || !CRM_Utils_Array::value('is_payer', $value)
@@ -795,7 +813,7 @@ $this->set('params', $this->_params);
         }
       } 
       else {
-        //Contact id reset for each loop iteration
+        //BOT - Contact id reset for each loop iteration
         $contactID = CRM_Utils_Array::value('contact_id', $value);
         $value['amount'] = $this->_totalAmount;
       
@@ -860,8 +878,8 @@ $this->set('params', $this->_params);
         }
         elseif (CRM_Utils_Array::value('is_payer', $value)) {
           CRM_Core_Payment_Form::mapParams($this->_bltID, $value, $value, TRUE);
-
           if (is_object($payment)) {
+
             $result = &$payment->doDirectPayment($value);
           } else {
              CRM_Core_Error::fatal($paymentObjError);
@@ -890,6 +908,7 @@ $this->set('params', $this->_params);
           $createContrib = TRUE;
         }
 
+
         if ($createContrib && CRM_Utils_Array::value('is_payer', $value) &&
           !$this->_allowWaitlist && !$this->_requireApproval
         ) {
@@ -901,7 +920,7 @@ $this->set('params', $this->_params);
             $isAdditionalAmount = TRUE;
           }
 
-       
+      
           //passing contribution id is already registered.
           $contribution = &self::processContribution($this, $value, $result, $contactID,
             $pending, $isAdditionalAmount
@@ -918,7 +937,7 @@ $this->set('params', $this->_params);
         $value['eventID']   = $this->_eventId;
         $value['item_name'] = $value['description'];
       }
-      
+     
       //CRM-4453.
       if (CRM_Utils_Array::value('is_payer', $value)) {
         $primaryCurrencyID = CRM_Utils_Array::value('currencyID', $value);
@@ -1241,7 +1260,6 @@ $this->set('params', $this->_params);
       // available at hook_post_process, CRM-8908
       $contribParams['soft_credit_to'] = $params['soft_credit_to'] = $contribSoftContactId;
     }
-
     // create contribution record
     $contribution = CRM_Contribute_BAO_Contribution::add($contribParams, $ids);
 
